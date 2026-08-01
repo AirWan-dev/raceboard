@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+# Données locales — ne JAMAIS versionner
+*.ibt
+*.db
+*.sqlite3
+# Éditeurs / OS
+.vscode/
+.idea/
+Thumbs.db
