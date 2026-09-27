@@ -1,30 +1,51 @@
 # RaceBoard — README / architecture
- 
-*Document de contexte pour le projet Claude « RaceBoard ». À tenir à jour au fil de la construction.*
- 
+
+*Document de référence du projet. À tenir à jour au fil de la construction.*
+
 ## Objectif
-Un tableau de bord simracing qui transforme mes données de sessions **iRacing** en informations exploitables (temps au tour, secteurs), avec de la gestion de ligue/résultats.
- 
-**Point clé : l'objectif n'est PAS l'appli, c'est l'infrastructure autour.** RaceBoard est un lab : un prétexte réaliste pour apprendre Docker, CI/CD, cloud et IaC en construisant un vrai service, et en tirer une preuve pour mon CV. L'appli doit rester *juste assez* complexe pour rendre l'infra réaliste — pas plus.
- 
-## Ce que fait l'appli (minimal)
+Une application simracing qui transforme mes données de sessions **iRacing** en informations exploitables :
+analyse des temps au tour et des secteurs, gestion de ligue, et un ingénieur de course radio pendant la course.
+
+Deux objectifs, dans cet ordre :
+1. **Un lab d'infrastructure et un projet portfolio.** RaceBoard est un prétexte réaliste pour apprendre
+   Docker, CI/CD, cloud et IaC en construisant un vrai service, et en tirer une preuve pour mon CV.
+   L'infra est construite **à la main**.
+2. **Une application utilisée dans la durée.** Le code applicatif est délégué à **Claude Code**,
+   encadré par le fichier `CLAUDE.md`.
+
+## Ce que fait l'appli
 - **Télémétrie / perf** : lire un fichier `.ibt` d'une session → temps au tour et par secteur → visualisation.
 - **Ligue / résultats** : championnats, classements (CRUD multi-utilisateurs — bon terrain d'infra).
-- *Écarté* : moteur d'analyse/stratégie de course (expertise ingénieur de course que je n'ai pas, peu de valeur infra).
- 
-## Architecture cible (multi-services)
-Une petite appli à plusieurs composants, pour avoir une vraie infra à orchestrer :
+- **Ingénieur de course radio** : pendant la course, pousse des informations au pilote.
+  D'abord par règles, ensuite par IA (voir ADR 0003).
+
+## Architecture : deux composants
+
+### 1. Pipeline `.ibt` (cloud)
 - **Worker d'ingestion** : parse les `.ibt`, écrit en base.
-- **Base de données** : PostgreSQL (SQLite au tout début).
+- **Base de données** : SQLite au début, PostgreSQL ensuite.
 - **API** : expose les données (FastAPI).
 - **Front** : dashboard (Streamlit au début, Grafana ensuite).
- 
+
+Les composants communiquent uniquement via la base de données : la conteneurisation doit être
+un simple empaquetage, pas une réécriture.
+
+### 2. Ingénieur de course radio (local)
+Tourne sur le PC de jeu Windows et lit le SDK iRacing en direct. Il ne peut pas aller dans le cloud :
+le SDK n'existe que lorsque le simulateur tourne. La lecture du SDK est séparée de la logique des règles,
+pour tester les règles en rejouant un `.ibt`, y compris en CI.
+
 ## Stack
-Python · pyirsdk (parsing `.ibt`) · SQLite → PostgreSQL · Streamlit → Grafana · Docker + docker-compose · GitHub Actions · Azure · Terraform.
- 
+Python · pyirsdk · SQLite → PostgreSQL · Streamlit → Grafana · Docker + docker-compose ·
+GitHub Actions · Azure puis AWS · Terraform · Claude Code (code applicatif).
+
 ## Données iRacing
-Trois sources possibles : l'API `/data` (résultats), le SDK (live 60 Hz), et les fichiers **`.ibt`** (sauvegardés dans `iRacing/telemetry/`). On part sur les `.ibt` (batch, pas de temps réel). `pyirsdk` peut lire un `.ibt` **sans que le simulateur tourne** → on développe n'importe où, y compris en CI/cloud.
- 
+Trois sources : l'API `/data` (résultats de sessions terminées), le SDK (live 60 Hz, simulateur lancé),
+et les fichiers **`.ibt`** (sauvegardés dans `iRacing/telemetry/`).
+- Le pipeline utilise les `.ibt` (lots) : `pyirsdk` les lit **sans que le simulateur tourne**
+  → développement possible partout, y compris en CI et dans le cloud (ADR 0001).
+- L'ingénieur radio utilise le SDK (ADR 0003).
+
 ## Construction par couches
 On ne passe à la couche suivante qu'une fois la précédente **réellement maîtrisée**.
 - **v0.1** — squelette : parsing `.ibt` → base → dashboard (sur ma machine, sans conteneur).
@@ -33,13 +54,21 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - **v0.4** — cloud : déploiement sur Azure.
 - **v0.5** — IaC : Terraform provisionne l'infra Azure.
 - **v0.6** — exploitation : supervision, sauvegardes, reprise.
-- *En réserve* : environnements dev / staging / prod ; authentification / comptes (si ouverture à d'autres utilisateurs) ; ingestion temps réel via le SDK.
- 
+- **v0.7** — multi-cloud : déploiement sur AWS en couche supplémentaire.
+- *En parallèle* : ingénieur de course radio, développé par Claude Code, sans bloquer la feuille de route infra.
+- *En réserve* : environnements dev / staging / prod ; authentification / comptes.
+
 ## Règles de conception
-- **Infra d'abord**, fonctionnalités ensuite. Si je passe plus de temps sur les features que sur l'infra, c'est un signal d'alarme.
+- **Infra d'abord.** Je construis l'infra moi-même ; Claude Code écrit le code applicatif.
+  Si je passe plus de temps sur l'appli que sur l'infra, c'est un signal d'alarme.
+- Le dépôt est la **seule source de vérité** : `README.md`, `CLAUDE.md` et les ADR de `docs/decisions/`.
+- Toute décision structurante fait l'objet d'un ADR.
 - Toujours expliquer le **« pourquoi »** avant le **« comment »**.
-- Profil : ~8 ans sysadmin (Windows/Linux/réseau) mais **débutant** sur Docker, cloud, CI/CD, Git → enseigner ces briques depuis les bases appliquées.
- 
+
+## Décisions (ADR)
+- 0001 — Utiliser les fichiers `.ibt` comme source de données
+- 0003 — Créer un ingénieur de course radio, par règles puis par IA
+
 ## État actuel
-Projet **reparti de zéro**. Prochaine étape : construire la **v0.1** (récupérer un `.ibt`, écrire le script de parsing des temps au tour).
- 
+Dépôt Git en place, `CLAUDE.md` et ADR 0001 / 0003 poussés.
+Prochaine étape : **v0.1** — récupérer un `.ibt` et écrire le parsing des temps au tour.
