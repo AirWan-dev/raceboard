@@ -7,6 +7,8 @@ venv/
 *.ibt
 *.db
 *.sqlite3
+# Secrets (future clé d'API du LLM)
+.env
 # Éditeurs / OS
 .vscode/
 .idea/
