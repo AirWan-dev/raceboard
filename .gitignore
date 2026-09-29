@@ -7,6 +7,7 @@ venv/
 *.ibt
 *.db
 *.sqlite3
+RAPPORT.md
 # Secrets (future clé d'API du LLM)
 .env
 # Éditeurs / OS
