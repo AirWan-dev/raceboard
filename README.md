@@ -77,8 +77,8 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 |---|---|---|---|---|
 | a | **État des lieux propre** : dépôt, venv, arborescence (`src/`, `data/`, `docs/`), suppression du dossier `dev` parasite | Erwan | `git status` propre, venv activé, `py --version` = 3.12 | ✅ terminé |
 | b | **Lire un `.ibt`** : script qui ouvre un fichier avec `pyirsdk` et liste les variables disponibles | Claude Code | La liste des canaux s'affiche en console | ✅ terminé |
-| c | **Extraire les tours** : temps au tour (puis secteurs) d'une session | Claude Code | Tableau des tours cohérent avec la session réelle | ⏳ en cours |
-| d | **Écrire en base** : schéma SQLite (sessions, tours), insertion | Claude Code | Une requête SQL renvoie les tours | ⬜ |
+| c | **Extraire les tours** : temps au tour (puis secteurs) d'une session | Claude Code | Tableau des tours cohérent avec la session réelle | ✅ terminé |
+| d | **Écrire en base** : schéma SQLite (sessions, tours), insertion | Claude Code | Une requête SQL renvoie les tours | ⏳ en cours |
 | e | **Worker d'ingestion** : traite tous les `.ibt` d'un dossier, sans doublon si relancé | Claude Code | 2 lancements = même nombre de lignes | ⬜ |
 | f | **Dashboard Streamlit** : lit la base (jamais les `.ibt` directement) | Claude Code | Page locale affichant les temps au tour | ⬜ |
 | g | **Clôture v0.1** : `requirements.txt`, README à jour, tag Git `v0.1` | Erwan | Un clone neuf + 3 commandes = appli qui tourne | ⬜ |
@@ -90,4 +90,4 @@ Règles pour ce plan :
 
 ## État actuel
 Dépôt Git en place, `CLAUDE.md` et ADR 0001 / 0003 poussés.
-Étape en cours : **v0.1 — étape c** (extraire les tours).
+Étape en cours : **v0.1 — étape d** (écrire en base).
