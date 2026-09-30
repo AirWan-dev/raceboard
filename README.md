@@ -56,7 +56,8 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - **v0.6** — exploitation : supervision, sauvegardes, reprise.
 - **v0.7** — multi-cloud : déploiement sur AWS en couche supplémentaire.
 - *En parallèle* : ingénieur de course radio, développé par Claude Code, sans bloquer la feuille de route infra.
-- *En réserve* : environnements dev / staging / prod ; authentification / comptes.
+- *En réserve* : environnements dev / staging / prod ; authentification / comptes ;
+  carte du circuit : trajectoire, statistiques et position des incidents.
 
 ## Règles de conception
 - **Infra d'abord.** Je construis l'infra moi-même ; Claude Code écrit le code applicatif.
