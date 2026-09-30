@@ -99,6 +99,16 @@ Si une consigne orale contredit un ADR, signale-le avant d'agir.
   nouvelle variable d'environnement, nouveau fichier de données, nouvel appel réseau sortant
   (ex. API d'un LLM). Erwan devra adapter l'infra en conséquence.
 
+## Tests : obligatoires, sans qu'on te le demande
+- À la fin de **chaque** tâche, lance toute la suite de tests (`py -m pytest -v`, venv activé)
+  et reporte le résultat dans `RAPPORT.md`. Une tâche n'est pas terminée tant qu'un test échoue.
+- Tout nouveau module ou changement de comportement arrive **avec ses tests pytest**.
+  La suite grossit avec le code.
+- Les tests ne dépendent jamais d'un fichier `.ibt` (données synthétiques) : ils doivent pouvoir
+  tourner en CI.
+- Ne modifie ni ne supprime un test existant pour le faire passer, sauf si la tâche le demande ;
+  si tu le fais, justifie-le explicitement dans le rapport.
+
 ## Rapport de fin de tâche
 À la fin de chaque tâche, **remplace** le contenu du fichier `RAPPORT.md` à la racine du dépôt
 (il est ignoré par Git). Ce rapport est relu par un autre assistant qui accompagne Erwan sur
@@ -111,6 +121,8 @@ l'infra : il doit se comprendre sans avoir vu ta session. Structure :
 ## Ce qui a été fait
 ## Fichiers créés ou modifiés
 ## Comment tester (commandes exactes)
+## Résultat des tests
+(commande lancée, nombre de tests passés / échoués, tests ajoutés ou modifiés)
 ## Impacts sur l'infra
 (dépendances, variables d'environnement, ports, fichiers de données, appels réseau ;
 « aucun » si c'est le cas)
