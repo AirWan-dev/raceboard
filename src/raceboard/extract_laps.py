@@ -1,7 +1,7 @@
 """Extrait les temps au tour d'une session enregistrée dans un fichier .ibt.
 
 Usage :
-    py src/extract_laps.py "C:/chemin/vers/session.ibt"
+    py -m raceboard.extract_laps "C:/chemin/vers/session.ibt"
 """
 
 import argparse

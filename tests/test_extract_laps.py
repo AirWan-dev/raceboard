@@ -1,6 +1,6 @@
 """Tests de l'extraction des tours, sur des données synthétiques (aucun .ibt nécessaire)."""
 
-from extract_laps import extract_laps, format_lap_time
+from raceboard.extract_laps import extract_laps, format_lap_time
 
 # Colonnes d'un échantillon synthétique, dans l'ordre des tuples ci-dessous.
 COLUMNS = ["SessionNum", "SessionTime", "Lap", "LapLastLapTime", "OnPitRoad", "PlayerCarMyIncidentCount"]

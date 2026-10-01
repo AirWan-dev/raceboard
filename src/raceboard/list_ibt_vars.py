@@ -1,7 +1,7 @@
 """Liste les variables (canaux de télémétrie) disponibles dans un fichier .ibt.
 
 Usage :
-    py src/list_ibt_vars.py "C:/chemin/vers/session.ibt"
+    py -m raceboard.list_ibt_vars "C:/chemin/vers/session.ibt"
 """
 
 import argparse
