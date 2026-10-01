@@ -69,6 +69,7 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 ## Décisions (ADR)
 - 0001 — Utiliser les fichiers `.ibt` comme source de données
 - 0003 — Créer un ingénieur de course radio, par règles puis par IA
+- 0004 — Organiser le code en paquet Python installable
 
 ## Plan de la v0.1 (étape en cours)
 Chaque étape a un critère « terminé » vérifiable. On ne passe à la suivante que lorsqu'il est rempli.
