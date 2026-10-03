@@ -118,3 +118,19 @@ def test_format_lap_time():
     assert format_lap_time(59.5) == "0:59.500"
     assert format_lap_time(128.3) == "2:08.300"
     assert format_lap_time(59.9996) == "1:00.000"
+
+
+def test_lap_keeps_incident_count():
+    rows = [
+        (0, 0.0, 1, 0.0, False, 0),
+        (0, 40.0, 1, 0.0, False, 2),      # incident 2x au tour 1
+        (0, 100.0, 2, 0.0, False, 2),
+        (0, 100.5, 2, 100.0, False, 2),
+        (0, 150.0, 2, 100.0, False, 3),   # incident 1x au tour 2
+        (0, 199.0, 3, 100.0, False, 3),
+        (0, 199.5, 3, 99.0, False, 3),
+        (0, 300.0, 4, 99.0, False, 3),
+    ]
+    laps = extract_laps(build_channels(rows)).laps
+
+    assert [(lap.lap_num, lap.incidents) for lap in laps] == [(1, 2), (2, 1), (3, 0)]

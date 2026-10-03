@@ -30,6 +30,7 @@ class Lap:
     time_s: float
     time_is_official: bool  # True : temps iRacing ; False : temps mesuré entre deux passages de ligne
     valid: bool
+    incidents: int  # points d'incident pris pendant le tour
     remarks: list[str] = field(default_factory=list)
 
 
@@ -134,7 +135,7 @@ def extract_laps(channels: dict[str, list]) -> LapExtraction:
 
         # Valide = chronométré par iRacing, sans passage aux stands ni incident.
         valid = time_is_official and not went_through_pits and new_incidents == 0
-        laps.append(Lap(session_num, lap_num, time_s, time_is_official, valid, remarks))
+        laps.append(Lap(session_num, lap_num, time_s, time_is_official, valid, new_incidents, remarks))
 
     return LapExtraction(laps, incomplete)
 
