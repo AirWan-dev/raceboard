@@ -99,6 +99,13 @@ Si une consigne orale contredit un ADR, signale-le avant d'agir.
   nouvelle variable d'environnement, nouveau fichier de données, nouvel appel réseau sortant
   (ex. API d'un LLM). Erwan devra adapter l'infra en conséquence.
 
+## Avant chaque tâche : lecture obligatoire, sans qu'on te le demande
+Avant de proposer ton plan, lis :
+- `README.md` : le plan de la version en cours et l'étape en cours ;
+- `docs/decisions/` : tous les ADR ;
+- `RAPPORT.md` (s'il existe) : le compte rendu de la tâche précédente.
+Si la tâche demandée ne correspond pas à l'étape en cours du README, signale-le avant d'agir.
+
 ## Tests : obligatoires, sans qu'on te le demande
 - À la fin de **chaque** tâche, lance toute la suite de tests (`py -m pytest -v`, venv activé)
   et reporte le résultat dans `RAPPORT.md`. Une tâche n'est pas terminée tant qu'un test échoue.
