@@ -129,6 +129,22 @@ def save_session(
     return session_id
 
 
+def imported_files(connection: sqlite3.Connection) -> set[str]:
+    """Noms des fichiers .ibt déjà en base.
+
+    Un fichier est importé en une seule transaction : s'il a au moins une session en base,
+    il a été importé en entier.
+    """
+    return {row[0] for row in connection.execute("SELECT DISTINCT source_file FROM sessions")}
+
+
+def count_rows(connection: sqlite3.Connection) -> tuple[int, int]:
+    """Nombre de lignes des tables sessions et laps."""
+    sessions = connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+    laps = connection.execute("SELECT COUNT(*) FROM laps").fetchone()[0]
+    return sessions, laps
+
+
 def fetch_laps(connection: sqlite3.Connection) -> list[StoredLap]:
     """Tous les tours de la base, avec les informations de leur session."""
     rows = connection.execute(LAPS_QUERY).fetchall()

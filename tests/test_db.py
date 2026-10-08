@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from raceboard.db import ConfigError, create_schema, fetch_laps, get_db_path, save_session
+from raceboard.db import ConfigError, count_rows, create_schema, fetch_laps, get_db_path, imported_files, save_session
 
 
 def test_get_db_path_reads_environment_variable(monkeypatch, tmp_path):
@@ -83,3 +83,16 @@ def test_lap_requires_existing_session(connection):
                 "INSERT INTO laps (session_id, lap_num, lap_time_ms, time_is_official, is_valid, incidents) "
                 "VALUES (999, 1, 100000, TRUE, TRUE, 0)"
             )
+
+
+def test_imported_files_and_row_counts(connection, ibt_info, sample_laps):
+    assert imported_files(connection) == set()
+    assert count_rows(connection) == (0, 0)
+
+    with connection:
+        save_session(connection, "a.ibt", 0, ibt_info, sample_laps)
+        save_session(connection, "a.ibt", 1, ibt_info, [])
+        save_session(connection, "b.ibt", 0, ibt_info, sample_laps[:1])
+
+    assert imported_files(connection) == {"a.ibt", "b.ibt"}
+    assert count_rows(connection) == (3, 5)

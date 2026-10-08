@@ -22,7 +22,7 @@ def build_ibt_info(weekend_info: dict, driver_info: dict, session_info: dict, st
     player = next(driver for driver in driver_info["Drivers"] if driver["CarIdx"] == player_car_idx)
     return IbtInfo(
         track_name=weekend_info["TrackDisplayName"],
-        track_config=weekend_info["TrackConfigName"],
+        track_config=weekend_info.get("TrackConfigName") or "",  # vide pour un circuit sans configuration (ex. Le Mans)
         car_name=player["CarScreenName"],
         recorded_at=datetime.fromtimestamp(start_timestamp, UTC),
         session_types={session["SessionNum"]: session["SessionType"] for session in session_info["Sessions"]},

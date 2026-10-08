@@ -28,3 +28,14 @@ def test_build_ibt_info():
     assert info.car_name == "Ferrari 296 GT3"
     assert info.recorded_at == datetime(2026, 10, 1, 19, 52, 14, tzinfo=UTC)
     assert info.session_types == {0: "Practice", 1: "Race"}
+
+
+def test_track_without_configuration():
+    # Pour un circuit sans configuration (ex. Le Mans), TrackConfigName est vide dans l'en-tête.
+    weekend_info = {"TrackDisplayName": "Circuit des 24 Heures du Mans", "TrackConfigName": None}
+    driver_info = {"DriverCarIdx": 0, "Drivers": [{"CarIdx": 0, "CarScreenName": "Aston Martin Vantage GT3 EVO"}]}
+    session_info = {"Sessions": [{"SessionNum": 0, "SessionType": "Offline Testing"}]}
+
+    info = build_ibt_info(weekend_info, driver_info, session_info, start_timestamp=0)
+
+    assert info.track_config == ""

@@ -7,7 +7,7 @@ import pytest
 
 from raceboard import import_ibt
 from raceboard.db import fetch_laps
-from raceboard.import_ibt import save_ibt
+from raceboard.import_ibt import read_ibt, save_ibt
 
 # Échantillons synthétiques : session, temps, tour, dernier temps iRacing, stands, incidents.
 ROWS = [
@@ -86,3 +86,17 @@ def test_import_missing_file(monkeypatch, capsys, tmp_path):
     missing = tmp_path / "absent.ibt"
     assert run_main(monkeypatch, str(missing)) == 1
     assert capsys.readouterr().err == f"Fichier introuvable : {missing}\n"
+
+
+def test_read_ibt_without_telemetry(monkeypatch, tmp_path):
+    empty_channels = {name: [] for name in COLUMNS + ["LapBestLapTime"]}
+    monkeypatch.setattr(import_ibt, "read_lap_channels", lambda p: empty_channels)
+    with pytest.raises(ValueError, match="Aucune donnée de télémétrie"):
+        read_ibt(tmp_path / "vide.ibt")
+
+
+def test_read_ibt(fake_ibt, ibt_info):
+    content = read_ibt(fake_ibt)
+    assert content.info == ibt_info
+    assert content.session_nums == [0]
+    assert [lap.lap_num for lap in content.laps] == [0, 1, 2]

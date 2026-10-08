@@ -103,6 +103,15 @@ def extract_laps(channels: dict[str, list]) -> LapExtraction:
         session_num, lap_num = session_nums[start], lap_nums[start]
         next_run = runs[index + 1] if index + 1 < len(runs) else None
 
+        # Si le compteur de tours d'iRacing revient en arrière dans la session (ex. au départ d'une
+        # course, il repasse de 1 à 0), les passages de ligne déjà comptés à partir de ce numéro
+        # sont annulés : on oublie les tours correspondants.
+        if index > 0:
+            previous_start = runs[index - 1][0]
+            if session_nums[previous_start] == session_num and lap_nums[previous_start] > lap_num:
+                laps = [lap for lap in laps if lap.session_num != session_num or lap.lap_num < lap_num]
+                incomplete = [(s, n) for (s, n) in incomplete if s != session_num or n < lap_num]
+
         # Le tour n'est terminé que si l'on voit ensuite le tour suivant de la même session.
         if (
             next_run is None

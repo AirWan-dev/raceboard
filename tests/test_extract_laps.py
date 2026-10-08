@@ -134,3 +134,42 @@ def test_lap_keeps_incident_count():
     laps = extract_laps(build_channels(rows)).laps
 
     assert [(lap.lap_num, lap.incidents) for lap in laps] == [(1, 2), (2, 1), (3, 0)]
+
+
+def test_lap_counter_going_back_at_race_start_cancels_phantom_lap():
+    # Au départ d'une course, iRacing passe le compteur de 0 à 1, puis le remet à 0 :
+    # le premier « tour 0 » n'est pas un vrai tour.
+    rows = [
+        (0, 0.0, 0, 0.0, False, 0),
+        (0, 100.0, 1, 0.0, False, 0),     # passage de ligne annulé ensuite
+        (0, 105.0, 0, 0.0, False, 0),     # retour à 0 : vrai départ
+        (0, 200.0, 1, 0.0, False, 0),
+        (0, 300.0, 2, 0.0, False, 0),
+        (0, 300.5, 2, 100.0, False, 0),
+        (0, 399.0, 3, 100.0, False, 0),
+        (0, 399.5, 3, 99.0, False, 0),
+    ]
+    result = extract_laps(build_channels(rows))
+
+    assert [(lap.lap_num, lap.time_s) for lap in result.laps] == [(0, 95.0), (1, 100.0), (2, 99.0)]
+    assert result.incomplete_laps == [(0, 3)]
+
+
+def test_lap_counter_oscillating_after_qualifying_cancels_untimed_lap():
+    # En qualification solo, après les tours chronométrés, le compteur oscille (4 puis 3) :
+    # iRacing ne publie pas de temps pour le tour 3, qui ne doit pas apparaître.
+    rows = [
+        (0, 0.0, 1, 0.0, False, 0),
+        (0, 85.0, 2, 0.0, False, 0),
+        (0, 85.5, 2, 85.0, False, 0),
+        (0, 170.0, 3, 85.0, False, 0),
+        (0, 170.5, 3, 84.5, False, 0),
+        (0, 255.0, 4, 84.5, False, 0),    # passage de ligne annulé ensuite
+        (0, 260.0, 3, 84.5, False, 0),
+        (0, 340.0, 4, 84.5, False, 0),    # de nouveau annulé
+        (0, 345.0, 3, 84.5, False, 0),
+    ]
+    result = extract_laps(build_channels(rows))
+
+    assert [(lap.lap_num, lap.time_s) for lap in result.laps] == [(1, 85.0), (2, 84.5)]
+    assert result.incomplete_laps == [(0, 3)]

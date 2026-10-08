@@ -9,11 +9,33 @@ Usage :
 import argparse
 import sqlite3
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from raceboard.db import ConfigError, connect, create_schema, get_db_path, save_session
 from raceboard.extract_laps import Lap, extract_laps, read_lap_channels
 from raceboard.session_info import IbtInfo, read_ibt_info
+
+
+@dataclass
+class IbtContent:
+    info: IbtInfo
+    session_nums: list[int]  # sessions présentes dans la télémétrie du fichier
+    laps: list[Lap]          # tours terminés, toutes sessions confondues
+
+
+def read_ibt(ibt_path: Path) -> IbtContent:
+    """Lit un fichier .ibt : informations générales, sessions et tours terminés."""
+    channels = read_lap_channels(ibt_path)
+    if not channels["SessionNum"]:
+        # Sans échantillon, rien ne serait écrit en base et le fichier serait retraité à chaque fois.
+        raise ValueError(f"Aucune donnée de télémétrie dans le fichier : {ibt_path.name}")
+    info = read_ibt_info(ibt_path)
+    return IbtContent(
+        info=info,
+        session_nums=sorted(set(channels["SessionNum"])),
+        laps=extract_laps(channels).laps,
+    )
 
 
 def save_ibt(
@@ -43,19 +65,16 @@ def main() -> int:
 
     try:
         db_path = get_db_path()
-        channels = read_lap_channels(args.ibt_path)
-        info = read_ibt_info(args.ibt_path)
+        content = read_ibt(args.ibt_path)
     except (ConfigError, ValueError) as error:
         print(error, file=sys.stderr)
         return 1
 
-    laps = extract_laps(channels).laps
-    session_nums = sorted(set(channels["SessionNum"]))
-
+    info = content.info
     connection = connect(db_path)
     try:
         create_schema(connection)
-        lap_counts = save_ibt(connection, args.ibt_path.name, info, session_nums, laps)
+        lap_counts = save_ibt(connection, args.ibt_path.name, info, content.session_nums, content.laps)
     except sqlite3.IntegrityError as error:
         print(f"Insertion refusée par la base (fichier déjà importé ?) : {error}", file=sys.stderr)
         return 1
