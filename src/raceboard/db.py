@@ -1,4 +1,4 @@
-"""Accès à la base de données : connexion, schéma, écriture et lecture des tours.
+"""Accès à la base de données : connexion, schéma, écriture et lecture des tours, quarantaine.
 
 SQL portable (SQLite aujourd'hui, PostgreSQL prévu en v0.2), à une exception près,
 signalée dans SCHEMA : l'auto-incrément de sessions.id.
@@ -7,6 +7,7 @@ signalée dans SCHEMA : l'auto-incrément de sessions.id.
 import os
 import sqlite3
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from raceboard.extract_laps import Lap
@@ -39,7 +40,18 @@ SCHEMA = [
         PRIMARY KEY (session_id, lap_num)
     )
     """,
+    # Fichiers rejetés par le worker (ADR 0005). Pour retenter un fichier, supprimer sa ligne.
+    """
+    CREATE TABLE IF NOT EXISTS quarantine (
+        source_file    VARCHAR(255) PRIMARY KEY,  -- nom du fichier .ibt, sans le dossier
+        error_message  TEXT NOT NULL,
+        rejected_at    TIMESTAMP NOT NULL         -- date du rejet, UTC
+    )
+    """,
 ]
+
+# Format des dates écrites en base (UTC). SQLite n'a pas de vrai type date : texte triable.
+TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 LAPS_QUERY = """
     SELECT s.recorded_at, s.car_name, s.session_num, s.session_type,
@@ -112,7 +124,7 @@ def save_session(
             info.track_name,
             info.track_config,
             info.car_name,
-            info.recorded_at.strftime("%Y-%m-%d %H:%M:%S"),
+            info.recorded_at.strftime(TIMESTAMP_FORMAT),
         ),
     ).fetchone()[0]
 
@@ -136,6 +148,22 @@ def imported_files(connection: sqlite3.Connection) -> set[str]:
     il a été importé en entier.
     """
     return {row[0] for row in connection.execute("SELECT DISTINCT source_file FROM sessions")}
+
+
+def quarantined_files(connection: sqlite3.Connection) -> set[str]:
+    """Noms des fichiers .ibt en quarantaine (rejetés lors d'un passage précédent du worker)."""
+    return {row[0] for row in connection.execute("SELECT source_file FROM quarantine")}
+
+
+def add_to_quarantine(
+    connection: sqlite3.Connection, source_file: str, error_message: str, rejected_at: datetime
+) -> None:
+    """Inscrit un fichier rejeté en quarantaine (transaction validée immédiatement)."""
+    with connection:
+        connection.execute(
+            "INSERT INTO quarantine (source_file, error_message, rejected_at) VALUES (?, ?, ?)",
+            (source_file, error_message, rejected_at.strftime(TIMESTAMP_FORMAT)),
+        )
 
 
 def count_rows(connection: sqlite3.Connection) -> tuple[int, int]:

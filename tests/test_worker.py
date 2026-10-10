@@ -1,9 +1,11 @@
 """Tests du worker d'ingestion (lecture des .ibt remplacée par des données synthétiques)."""
 
+from datetime import UTC, datetime
+
 import pytest
 
 from raceboard import worker
-from raceboard.db import ConfigError, count_rows
+from raceboard.db import ConfigError, count_rows, quarantined_files
 from raceboard.extract_laps import Lap
 from raceboard.import_ibt import IbtContent
 from raceboard.worker import get_telemetry_dir, run_worker
@@ -65,7 +67,10 @@ def test_second_run_adds_nothing(connection, telemetry_dir):
     assert count_rows(connection) == rows_after_first_run
     assert report.imported == []
     assert report.skipped == 2
-    assert [name for name, _ in report.errors] == ["casse.ibt"]  # retenté, toujours en erreur
+    # ADR 0005 : casse.ibt est en quarantaine depuis le 1er passage, il n'est plus retraité.
+    assert report.quarantined == 1
+    assert report.errors == []
+    assert quarantined_files(connection) == {"casse.ibt"}
 
 
 def test_new_file_is_imported_on_next_run(connection, telemetry_dir):
@@ -87,10 +92,51 @@ def test_main_output_and_exit_code(monkeypatch, capsys, tmp_path, telemetry_dir)
     assert captured.out.splitlines() == [
         "importé  a.ibt : 2 tours",
         "importé  b.ibt : 2 tours",
-        "3 fichiers .ibt : 2 importés, 0 déjà en base, 1 en erreur",
-        "Base raceboard.db : 2 sessions, 4 tours",
+        "3 fichiers .ibt : 2 importés, 0 déjà en base, 1 mis en quarantaine, 0 déjà en quarantaine",
+        "Base raceboard.db : 2 sessions, 4 tours, 1 fichiers en quarantaine",
     ]
     assert captured.err == "ERREUR   casse.ibt : ValueError: fichier illisible\n"
+
+
+def test_main_second_run_returns_0_with_known_quarantine(monkeypatch, capsys, tmp_path, telemetry_dir):
+    monkeypatch.setenv("RACEBOARD_DB_PATH", str(tmp_path / "raceboard.db"))
+    monkeypatch.setenv("RACEBOARD_TELEMETRY_DIR", str(telemetry_dir))
+    worker.main()
+    capsys.readouterr()
+
+    assert worker.main() == 0  # aucun nouvel échec : le fichier en quarantaine est un problème connu
+    captured = capsys.readouterr()
+    assert captured.out.splitlines() == [
+        "3 fichiers .ibt : 0 importés, 2 déjà en base, 0 mis en quarantaine, 1 déjà en quarantaine",
+        "Base raceboard.db : 2 sessions, 4 tours, 1 fichiers en quarantaine",
+    ]
+    assert captured.err == ""
+
+
+def test_failed_file_is_put_in_quarantine(connection, telemetry_dir):
+    before = datetime.now(UTC).replace(microsecond=0)
+    run_worker(connection, telemetry_dir)
+
+    rows = connection.execute("SELECT source_file, error_message, rejected_at FROM quarantine").fetchall()
+    assert len(rows) == 1
+    source_file, error_message, rejected_at = rows[0]
+    assert (source_file, error_message) == ("casse.ibt", "ValueError: fichier illisible")
+    rejected = datetime.strptime(rejected_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+    assert before <= rejected <= datetime.now(UTC)
+    # Le worker ne supprime ni ne déplace jamais un fichier source.
+    assert (telemetry_dir / "casse.ibt").is_file()
+
+
+def test_file_removed_from_quarantine_is_retried(connection, telemetry_dir):
+    run_worker(connection, telemetry_dir)
+    with connection:
+        connection.execute("DELETE FROM quarantine WHERE source_file = 'casse.ibt'")
+
+    report = run_worker(connection, telemetry_dir)
+
+    assert report.quarantined == 0
+    assert [name for name, _ in report.errors] == ["casse.ibt"]  # retenté, de nouveau en quarantaine
+    assert quarantined_files(connection) == {"casse.ibt"}
 
 
 def test_main_without_configuration(monkeypatch, capsys):

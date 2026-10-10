@@ -1,10 +1,21 @@
 """Tests de l'accès à la base, sur une base SQLite temporaire."""
 
 import sqlite3
+from datetime import UTC, datetime
 
 import pytest
 
-from raceboard.db import ConfigError, count_rows, create_schema, fetch_laps, get_db_path, imported_files, save_session
+from raceboard.db import (
+    ConfigError,
+    add_to_quarantine,
+    count_rows,
+    create_schema,
+    fetch_laps,
+    get_db_path,
+    imported_files,
+    quarantined_files,
+    save_session,
+)
 
 
 def test_get_db_path_reads_environment_variable(monkeypatch, tmp_path):
@@ -96,3 +107,24 @@ def test_imported_files_and_row_counts(connection, ibt_info, sample_laps):
 
     assert imported_files(connection) == {"a.ibt", "b.ibt"}
     assert count_rows(connection) == (3, 5)
+
+
+def test_quarantine(connection):
+    assert quarantined_files(connection) == set()
+
+    add_to_quarantine(connection, "vide.ibt", "ValueError: vide", datetime(2026, 10, 10, 20, 30, 0, tzinfo=UTC))
+
+    assert quarantined_files(connection) == {"vide.ibt"}
+    assert connection.execute("SELECT source_file, error_message, rejected_at FROM quarantine").fetchall() == [
+        ("vide.ibt", "ValueError: vide", "2026-10-10 20:30:00"),
+    ]
+    # La quarantaine ne compte ni comme session ni comme tour.
+    assert imported_files(connection) == set()
+    assert count_rows(connection) == (0, 0)
+
+
+def test_same_file_cannot_be_quarantined_twice(connection):
+    rejected_at = datetime(2026, 10, 10, tzinfo=UTC)
+    add_to_quarantine(connection, "vide.ibt", "ValueError: vide", rejected_at)
+    with pytest.raises(sqlite3.IntegrityError):
+        add_to_quarantine(connection, "vide.ibt", "ValueError: vide", rejected_at)
