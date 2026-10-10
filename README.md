@@ -71,6 +71,7 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - 0003 — Créer un ingénieur de course radio, par règles puis par IA
 - 0004 — Organiser le code en paquet Python installable
 - 0005 - Tracer les fichiers rejetés dans une table de quarantaine
+- 0006 — Ne pas mettre en quarantaine les fichiers en cours d'écriture
 
 
 ## Plan de la v0.1 (étape en cours)
