@@ -11,9 +11,11 @@ from raceboard.db import (
     count_rows,
     create_schema,
     fetch_laps,
+    fetch_quarantine,
     get_db_path,
     imported_files,
     quarantined_files,
+    remove_from_quarantine,
     save_session,
 )
 
@@ -128,3 +130,18 @@ def test_same_file_cannot_be_quarantined_twice(connection):
     add_to_quarantine(connection, "vide.ibt", "ValueError: vide", rejected_at)
     with pytest.raises(sqlite3.IntegrityError):
         add_to_quarantine(connection, "vide.ibt", "ValueError: vide", rejected_at)
+
+
+def test_fetch_and_remove_quarantine(connection):
+    add_to_quarantine(connection, "b.ibt", "ValueError: b", datetime(2026, 10, 10, 12, 0, 0, tzinfo=UTC))
+    add_to_quarantine(connection, "a.ibt", "ValueError: a", datetime(2026, 10, 11, 12, 0, 0, tzinfo=UTC))
+
+    assert [(f.source_file, f.error_message, f.rejected_at) for f in fetch_quarantine(connection)] == [
+        ("b.ibt", "ValueError: b", "2026-10-10 12:00:00"),  # du rejet le plus ancien au plus récent
+        ("a.ibt", "ValueError: a", "2026-10-11 12:00:00"),
+    ]
+
+    assert remove_from_quarantine(connection, "b.ibt") is True
+    assert remove_from_quarantine(connection, "b.ibt") is False  # déjà retiré
+    assert remove_from_quarantine(connection, "inconnu.ibt") is False
+    assert quarantined_files(connection) == {"a.ibt"}

@@ -79,6 +79,13 @@ class StoredLap:
     incidents: int
 
 
+@dataclass
+class QuarantinedFile:
+    source_file: str
+    error_message: str
+    rejected_at: str  # UTC, format TIMESTAMP_FORMAT
+
+
 def get_db_path() -> Path:
     """Chemin du fichier de base, lu dans la variable d'environnement RACEBOARD_DB_PATH."""
     value = os.environ.get(DB_PATH_VARIABLE)
@@ -164,6 +171,24 @@ def add_to_quarantine(
             "INSERT INTO quarantine (source_file, error_message, rejected_at) VALUES (?, ?, ?)",
             (source_file, error_message, rejected_at.strftime(TIMESTAMP_FORMAT)),
         )
+
+
+def fetch_quarantine(connection: sqlite3.Connection) -> list[QuarantinedFile]:
+    """Contenu de la quarantaine, du rejet le plus ancien au plus récent."""
+    rows = connection.execute(
+        "SELECT source_file, error_message, rejected_at FROM quarantine ORDER BY rejected_at, source_file"
+    ).fetchall()
+    return [
+        QuarantinedFile(source_file=source_file, error_message=error_message, rejected_at=str(rejected_at))
+        for source_file, error_message, rejected_at in rows
+    ]
+
+
+def remove_from_quarantine(connection: sqlite3.Connection, source_file: str) -> bool:
+    """Retire un fichier de la quarantaine ; renvoie False s'il n'y était pas."""
+    with connection:
+        cursor = connection.execute("DELETE FROM quarantine WHERE source_file = ?", (source_file,))
+    return cursor.rowcount > 0
 
 
 def count_rows(connection: sqlite3.Connection) -> tuple[int, int]:
