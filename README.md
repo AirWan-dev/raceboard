@@ -94,8 +94,8 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 | c | **Extraire les tours** : temps au tour (puis secteurs) d'une session | Claude Code | Tableau des tours cohérent avec la session réelle | ✅ terminé |
 | d | **Écrire en base** : schéma SQLite (sessions, tours), insertion | Claude Code | Une requête SQL renvoie les tours | ✅ terminé |
 | e | **Worker d'ingestion** : traite tous les `.ibt` d'un dossier, sans doublon si relancé | Claude Code | 2 lancements = même nombre de lignes | ✅ terminé|
-| f | **Dashboard Streamlit** : lit la base (jamais les `.ibt` directement) | Claude Code | Page locale affichant les temps au tour | ⏳ en cours |
-| g | **Clôture v0.1** : `requirements.txt`, README à jour, tag Git `v0.1` | Erwan | Un clone neuf + 3 commandes = appli qui tourne | ⬜ |
+| f | **Dashboard Streamlit** : lit la base (jamais les `.ibt` directement) | Claude Code | Page locale affichant les temps au tour | ✅ terminé |
+| g | **Clôture v0.1** : `requirements.txt`, README à jour, tag Git `v0.1` | Erwan | Un clone neuf + 3 commandes = appli qui tourne | ⏳ en cours |
 
 Règles pour ce plan :
 - Une étape = un périmètre. Ne pas anticiper une étape suivante (pas de base à l'étape c, pas de dashboard à l'étape d…).
@@ -103,4 +103,4 @@ Règles pour ce plan :
 - Seul Erwan met à jour la colonne « État ».
 
 ## État actuel
-Étape en cours : **v0.1 — étape f** (Dashboard Streamlit).
+Étape en cours : **v0.1 — étape g** (Clôture v0.1).
