@@ -53,12 +53,26 @@ SCHEMA = [
 # Format des dates écrites en base (UTC). SQLite n'a pas de vrai type date : texte triable.
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-LAPS_QUERY = """
+LAPS_SELECT = """
     SELECT s.recorded_at, s.car_name, s.session_num, s.session_type,
            l.lap_num, l.lap_time_ms, l.time_is_official, l.is_valid, l.incidents
     FROM laps l
     JOIN sessions s ON s.id = l.session_id
-    ORDER BY s.recorded_at, s.session_num, l.lap_num
+"""
+LAPS_QUERY = LAPS_SELECT + "ORDER BY s.recorded_at, s.session_num, l.lap_num"
+SESSION_LAPS_QUERY = LAPS_SELECT + "WHERE l.session_id = ? ORDER BY l.lap_num"
+
+# Sessions avec leur nombre de tours, de tours valides et leur meilleur tour valide
+# (LEFT JOIN : une session sans tour donne 0, 0 et NULL).
+SESSIONS_QUERY = """
+    SELECT s.id, s.recorded_at, s.car_name, s.track_name, s.track_config, s.session_type,
+           COUNT(l.lap_num),
+           SUM(CASE WHEN l.is_valid = TRUE THEN 1 ELSE 0 END),
+           MIN(CASE WHEN l.is_valid = TRUE THEN l.lap_time_ms END)
+    FROM sessions s
+    LEFT JOIN laps l ON l.session_id = s.id
+    GROUP BY s.id, s.recorded_at, s.car_name, s.track_name, s.track_config, s.session_type
+    ORDER BY s.recorded_at DESC, s.id DESC
 """
 
 
@@ -80,6 +94,19 @@ class StoredLap:
 
 
 @dataclass
+class StoredSession:
+    id: int
+    recorded_at: str  # UTC, format TIMESTAMP_FORMAT
+    car_name: str
+    track_name: str
+    track_config: str
+    session_type: str
+    lap_count: int
+    valid_lap_count: int
+    best_valid_lap_ms: int | None  # None s'il n'y a aucun tour valide
+
+
+@dataclass
 class QuarantinedFile:
     source_file: str
     error_message: str
@@ -97,8 +124,12 @@ def get_db_path() -> Path:
     return path
 
 
-def connect(db_path: Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(db_path)
+def connect(db_path: Path, read_only: bool = False) -> sqlite3.Connection:
+    if read_only:
+        # Lecture seule : aucune écriture possible, et pas de base vide créée si le chemin est faux.
+        connection = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
+    else:
+        connection = sqlite3.connect(db_path)
     # SQLite ne vérifie les clés étrangères que si on le lui demande, à chaque connexion.
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
@@ -198,9 +229,36 @@ def count_rows(connection: sqlite3.Connection) -> tuple[int, int]:
     return sessions, laps
 
 
+def fetch_sessions(connection: sqlite3.Connection) -> list[StoredSession]:
+    """Toutes les sessions, de la plus récente à la plus ancienne, avec le résumé de leurs tours."""
+    return [
+        StoredSession(
+            id=session_id,
+            recorded_at=str(recorded_at),
+            car_name=car_name,
+            track_name=track_name,
+            track_config=track_config,
+            session_type=session_type,
+            lap_count=lap_count,
+            valid_lap_count=valid_lap_count,
+            best_valid_lap_ms=best_valid_lap_ms,
+        )
+        for (session_id, recorded_at, car_name, track_name, track_config, session_type,
+             lap_count, valid_lap_count, best_valid_lap_ms) in connection.execute(SESSIONS_QUERY)
+    ]
+
+
 def fetch_laps(connection: sqlite3.Connection) -> list[StoredLap]:
     """Tous les tours de la base, avec les informations de leur session."""
-    rows = connection.execute(LAPS_QUERY).fetchall()
+    return _to_stored_laps(connection.execute(LAPS_QUERY).fetchall())
+
+
+def fetch_session_laps(connection: sqlite3.Connection, session_id: int) -> list[StoredLap]:
+    """Tours d'une session, dans l'ordre."""
+    return _to_stored_laps(connection.execute(SESSION_LAPS_QUERY, (session_id,)).fetchall())
+
+
+def _to_stored_laps(rows: list[tuple]) -> list[StoredLap]:
     return [
         StoredLap(
             recorded_at=str(recorded_at),

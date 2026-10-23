@@ -1,6 +1,7 @@
 """Tests de l'accès à la base, sur une base SQLite temporaire."""
 
 import sqlite3
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -9,9 +10,12 @@ from raceboard.db import (
     ConfigError,
     add_to_quarantine,
     count_rows,
+    connect,
     create_schema,
     fetch_laps,
     fetch_quarantine,
+    fetch_session_laps,
+    fetch_sessions,
     get_db_path,
     imported_files,
     quarantined_files,
@@ -145,3 +149,60 @@ def test_fetch_and_remove_quarantine(connection):
     assert remove_from_quarantine(connection, "b.ibt") is False  # déjà retiré
     assert remove_from_quarantine(connection, "inconnu.ibt") is False
     assert quarantined_files(connection) == {"a.ibt"}
+
+
+def test_fetch_sessions(connection, ibt_info, sample_laps):
+    older = replace(ibt_info, recorded_at=datetime(2026, 9, 1, 10, 0, 0, tzinfo=UTC))
+    with connection:
+        save_session(connection, "recent.ibt", 0, ibt_info, sample_laps)
+        save_session(connection, "ancien.ibt", 0, older, sample_laps[:1])  # un seul tour, non valide
+        save_session(connection, "vide.ibt", 1, older, [])
+
+    sessions = fetch_sessions(connection)
+
+    # De la plus récente à la plus ancienne ; une session sans tour donne 0, 0 et None.
+    assert [(s.recorded_at, s.lap_count, s.valid_lap_count, s.best_valid_lap_ms) for s in sessions] == [
+        ("2026-09-26 19:41:02", 4, 2, 98716),
+        ("2026-09-01 10:00:00", 0, 0, None),
+        ("2026-09-01 10:00:00", 1, 0, None),
+    ]
+    assert (sessions[0].car_name, sessions[0].track_name, sessions[0].track_config, sessions[0].session_type) == (
+        "McLaren 720S GT3 EVO", "Fuji Speedway", "Grand Prix", "Offline Testing",
+    )
+
+
+def test_fetch_session_laps(connection, ibt_info, sample_laps):
+    with connection:
+        first = save_session(connection, "a.ibt", 0, ibt_info, sample_laps)
+        second = save_session(connection, "b.ibt", 0, ibt_info, sample_laps[:2])
+
+    assert [lap.lap_num for lap in fetch_session_laps(connection, first)] == [0, 1, 2, 3]
+    assert [(lap.lap_num, lap.lap_time_ms) for lap in fetch_session_laps(connection, second)] == [
+        (0, 128300),
+        (1, 101395),
+    ]
+    assert fetch_session_laps(connection, 999) == []
+
+
+def test_read_only_connection(tmp_path, ibt_info):
+    path = tmp_path / "raceboard.db"
+    connection = connect(path)
+    create_schema(connection)
+    with connection:
+        save_session(connection, "a.ibt", 0, ibt_info, [])
+    connection.close()
+
+    read_only = connect(path, read_only=True)
+    try:
+        assert len(fetch_sessions(read_only)) == 1
+        with pytest.raises(sqlite3.OperationalError):
+            read_only.execute("DELETE FROM sessions")
+    finally:
+        read_only.close()
+
+
+def test_read_only_connection_does_not_create_missing_database(tmp_path):
+    missing = tmp_path / "absente.db"
+    with pytest.raises(sqlite3.OperationalError):
+        connect(missing, read_only=True)
+    assert not missing.exists()

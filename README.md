@@ -46,6 +46,15 @@ et les fichiers **`.ibt`** (sauvegardés dans `iRacing/telemetry/`).
   → développement possible partout, y compris en CI et dans le cloud (ADR 0001).
 - L'ingénieur radio utilise le SDK (ADR 0003).
 
+## Lancer le dashboard
+Le dashboard Streamlit lit uniquement la base (en lecture seule), jamais les fichiers `.ibt`.
+Dans PowerShell, venv activé :
+```
+$env:RACEBOARD_DB_PATH = "data\raceboard.db"
+py -m raceboard.dashboard
+```
+Il s'ouvre sur **http://localhost:8501** (port **8501**). `Ctrl+C` dans le terminal arrête le serveur.
+
 ## Construction par couches
 On ne passe à la couche suivante qu'une fois la précédente **réellement maîtrisée**.
 - **v0.1** — squelette : parsing `.ibt` → base → dashboard (sur ma machine, sans conteneur).

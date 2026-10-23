@@ -7,10 +7,11 @@ name = "raceboard"
 version = "0.1.0"
 description = "Analyse de la télémétrie iRacing (.ibt) et gestion de ligue"
 requires-python = ">=3.12"
-# Dépendances directes. Les versions exactes de tout l'environnement sont figées
+# Dépendances directes, en fourchette. Les versions exactes de tout l'environnement sont figées
 # dans requirements.txt. pyirsdk est figé ici aussi : le code lit un attribut interne.
 dependencies = [
     "pyirsdk==1.3.6",
+    "streamlit>=1.66,<2",
 ]
 
 [tool.pytest.ini_options]
