@@ -10,6 +10,7 @@ venv/
 *.db
 *.sqlite3
 RAPPORT.md
+PLAN.md
 # Secrets (future clé d'API du LLM)
 .env
 # Éditeurs / OS

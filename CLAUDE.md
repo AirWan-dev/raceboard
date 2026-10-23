@@ -91,8 +91,10 @@ de `docs/decisions/`. Lis les ADR avant toute tâche qui touche à l'architectur
 Si une consigne orale contredit un ADR, signale-le avant d'agir.
 
 ## Façon de travailler
-- Une étape à la fois. Avant une modification importante, annonce ton plan en quelques lignes
-  et attends validation.
+- Une étape à la fois. **Avant de coder, écris ton plan dans le fichier `PLAN.md`** à la racine du
+  dépôt (remplace son contenu à chaque tâche ; il est ignoré par Git), puis **arrête-toi et attends
+  la validation d'Erwan**. Dans la conversation, annonce seulement que le plan est prêt.
+  Structure : tâche comprise, plan par étapes, impacts sur l'infra, points à valider (numérotés).
 - Explique le **pourquoi** de tes choix en 2-3 phrases, en français, sans jargon inutile.
 - Si une décision est structurante (coûteuse à défaire), signale-la : elle mérite peut-être un ADR.
 - **Signale explicitement tout impact sur l'infra** : nouvelle dépendance, nouveau port,
