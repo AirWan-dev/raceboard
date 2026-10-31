@@ -106,7 +106,7 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - 0006 — Ne pas mettre en quarantaine les fichiers en cours d'écriture
 
 
-## Plan de la v0.1 (étape en cours)
+## Plan de la v0.1 (terminée)
 Chaque étape a un critère « terminé » vérifiable. On ne passe à la suivante que lorsqu'il est rempli.
 Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applicatif (voir `CLAUDE.md`).
 
@@ -118,7 +118,7 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 | d | **Écrire en base** : schéma SQLite (sessions, tours), insertion | Claude Code | Une requête SQL renvoie les tours | ✅ terminé |
 | e | **Worker d'ingestion** : traite tous les `.ibt` d'un dossier, sans doublon si relancé | Claude Code | 2 lancements = même nombre de lignes | ✅ terminé|
 | f | **Dashboard Streamlit** : lit la base (jamais les `.ibt` directement) | Claude Code | Page locale affichant les temps au tour | ✅ terminé |
-| g | **Clôture v0.1** : `requirements.txt`, README à jour, tag Git `v0.1` | Erwan | Un clone neuf + 3 commandes = appli qui tourne | ⏳ en cours |
+| g | **Clôture v0.1** : `requirements.txt`, README à jour, tag Git `v0.1` | Erwan | Un clone neuf + 3 commandes = appli qui tourne | ✅ terminé |
 
 Règles pour ce plan :
 - Une étape = un périmètre. Ne pas anticiper une étape suivante (pas de base à l'étape c, pas de dashboard à l'étape d…).
@@ -126,4 +126,4 @@ Règles pour ce plan :
 - Seul Erwan met à jour la colonne « État ».
 
 ## État actuel
-Étape en cours : **v0.1 — étape g** (Clôture v0.1).
+Étape en cours : **v0.1 terminée** (tag `v0.1`). Prochaine couche : **v0.2 — conteneurs** (plan à établir).
