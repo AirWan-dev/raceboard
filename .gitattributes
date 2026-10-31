@@ -1,0 +1,13 @@
+# Règle par défaut
+*           text=auto
+
+# Lus sous Linux (dans le conteneur) : toujours LF
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+
+# Lus sous Windows : toujours CRLF
+*.ps1       text eol=crlf
+
+# Ne jamais toucher (pas du texte)
+*.ibt       binary
+*.db        binary
