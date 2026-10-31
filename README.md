@@ -46,15 +46,38 @@ et les fichiers **`.ibt`** (sauvegardés dans `iRacing/telemetry/`).
   → développement possible partout, y compris en CI et dans le cloud (ADR 0001).
 - L'ingénieur radio utilise le SDK (ADR 0003).
 
-## Lancer le dashboard
-Le dashboard Streamlit lit uniquement la base (en lecture seule), jamais les fichiers `.ibt`.
-Dans PowerShell, venv activé :
-```
-$env:RACEBOARD_DB_PATH = "data\raceboard.db"
-py -m raceboard.dashboard
-```
-Il s'ouvre sur **http://localhost:8501** (port **8501**). `Ctrl+C` dans le terminal arrête le serveur.
+## Installation
+Prérequis : Windows, Python 3.12, Git. Toutes les commandes se tapent dans PowerShell.
 
+1. Récupérer le projet
+   ```
+   git clone https://github.com/AirWan-dev/raceboard.git
+   cd raceboard
+   ```
+2. Créer puis activer l'environnement Python (l'activation est à refaire dans chaque nouvelle fenêtre)
+   ```
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+3. Installer RaceBoard et ses dépendances
+   ```
+   py -m pip install -r requirements-dev.txt
+   ```
+   (requirements.txt seul ne suffit pas : la ligne `-e .`, qui installe RaceBoard lui-même, est dans requirements-dev.txt)
+   
+4. Configurer (dans la même fenêtre)
+   ```
+   $env:RACEBOARD_DB_PATH = "C:\chemin\vers\raceboard\data\raceboard.db"
+   $env:RACEBOARD_TELEMETRY_DIR = "C:\Users\<vous>\Documents\iRacing\telemetry"
+   ```
+5. Importer les .ibt dans la base
+   ```
+   py -m raceboard.worker
+   ```
+6. Lancer le dashboard, puis ouvrir http://localhost:8501
+   ```
+   py -m raceboard.dashboard
+   ```
 ## Construction par couches
 On ne passe à la couche suivante qu'une fois la précédente **réellement maîtrisée**.
 - **v0.1** — squelette : parsing `.ibt` → base → dashboard (sur ma machine, sans conteneur).
