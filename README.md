@@ -102,7 +102,7 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - 0001 — Utiliser les fichiers `.ibt` comme source de données
 - 0003 — Créer un ingénieur de course radio, par règles puis par IA
 - 0004 — Organiser le code en paquet Python installable
-- 0005 - Tracer les fichiers rejetés dans une table de quarantaine
+- 0005 — Tracer les fichiers rejetés dans une table de quarantaine
 - 0006 — Ne pas mettre en quarantaine les fichiers en cours d'écriture
 
 
@@ -120,10 +120,31 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 | f | **Dashboard Streamlit** : lit la base (jamais les `.ibt` directement) | Claude Code | Page locale affichant les temps au tour | ✅ terminé |
 | g | **Clôture v0.1** : `requirements.txt`, README à jour, tag Git `v0.1` | Erwan | Un clone neuf + 3 commandes = appli qui tourne | ✅ terminé |
 
+
 Règles pour ce plan :
 - Une étape = un périmètre. Ne pas anticiper une étape suivante (pas de base à l'étape c, pas de dashboard à l'étape d…).
 - Les étapes ne se réordonnent pas et ne s'ajoutent pas sans décision d'Erwan.
 - Seul Erwan met à jour la colonne « État ».
 
+## Plan de la v0.2
+Chaque étape a un critère « terminé » vérifiable. On ne passe à la suivante que lorsqu'il est rempli.
+Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applicatif (voir `CLAUDE.md`).
+
+| # | Étape | Qui | Terminé quand… | État |
+|---|---|---|---|---|
+| a | **Installer Docker Desktop** et vérifier qu'il tourne | Erwan | `docker run hello-world` affiche le message de bienvenue | ⬜ à faire |
+| b | **Écrire le `Dockerfile` et le `.dockerignore`** | Erwan | Les deux fichiers sont versionnés et relus | ⬜ à faire |
+| c | **Construire l'image** (`docker build`) | Erwan | Le build passe sans erreur ; l'image ne contient ni `.venv`, ni `.ibt`, ni base | ⬜ à faire |
+| d | **Worker en conteneur** : variables d'environnement, dossier des `.ibt` partagé, base dans un volume | Erwan | 2 lancements = même nombre de sessions ; la base survit à la suppression du conteneur | ⬜ à faire |
+| e | **Dashboard en conteneur** : port 8501 publié, même volume | Erwan | http://localhost:8501 affiche la session de référence (McLaren Fuji : 7 tours, 5 valides, 1:38.716) | ⬜ à faire |
+| f | **docker compose** : worker + dashboard en une commande | Erwan | `docker compose up` démarre tout ; après `down` puis `up`, les données sont toujours là | ⬜ à faire |
+| g | **PostgreSQL** : 3e conteneur, premier secret | Claude Code (`db.py`) + Erwan (conteneur, secret) | Même session de référence affichée depuis PostgreSQL ; tests verts ; aucun mot de passe dans le dépôt | ⬜ à faire |
+| h | **Clôture v0.2** : Installation du README réécrite pour Docker, tag Git `v0.2` | Erwan | Un clone neuf + `docker compose up` = appli qui tourne, sans aucune variable Windows permanente | ⬜ à faire |
+
+Règles pour ce plan :
+- Une étape = un périmètre. Ne pas anticiper une étape suivante (pas de compose à l'étape d, pas de PostgreSQL avant l'étape g…).
+- Les étapes ne se réordonnent pas et ne s'ajoutent pas sans décision d'Erwan.
+- Seul Erwan met à jour la colonne « État ».
+
 ## État actuel
-Étape en cours : **v0.1 terminée** (tag `v0.1`). Prochaine couche : **v0.2 — conteneurs** (plan à établir).
+Étape en cours : **v0.2 — étape a** (installer Docker Desktop). v0.1 terminée (tag `v0.1`).
