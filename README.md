@@ -87,6 +87,12 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - **v0.5** — IaC : Terraform provisionne l'infra Azure.
 - **v0.6** — exploitation : supervision, sauvegardes, reprise.
 - **v0.7** — multi-cloud : déploiement sur AWS en couche supplémentaire.
+- **v0.8** — Sentinel : supervision assistée par IA, trois agents.
+  - **Veilleur** : lit les logs des conteneurs listés dans `sentinel.yml`.
+  - **Diagnosticien** : analyse une erreur détectée, cherche une solution dans la doc officielle / GitHub.
+  - **Rapporteur** : rapport de santé + correctif *proposé* (script ou commande), **jamais exécuté** automatiquement.
+  - Conçu **générique, piloté par config** : aucun nom propre à RaceBoard dans le code → réutilisable sur OpenSport, WealthOS, etc.
+    Extraction dans son propre dépôt une fois stable. ADR à rédiger au démarrage.
 - *En parallèle* : ingénieur de course radio, développé par Claude Code, sans bloquer la feuille de route infra.
 - *En réserve* : environnements dev / staging / prod ; authentification / comptes ;
   carte du circuit : trajectoire, statistiques et position des incidents.
@@ -132,7 +138,7 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 
 | # | Étape | Qui | Terminé quand… | État |
 |---|---|---|---|---|
-| a | **Installer Docker Desktop** et vérifier qu'il tourne | Erwan | `docker run hello-world` affiche le message de bienvenue | ⬜ à faire |
+| a | **Installer Docker Desktop** et vérifier qu'il tourne | Erwan | `docker run hello-world` affiche le message de bienvenue | ✅ terminé  |
 | b | **Écrire le `Dockerfile` et le `.dockerignore`** | Erwan | Les deux fichiers sont versionnés et relus | ⬜ à faire |
 | c | **Construire l'image** (`docker build`) | Erwan | Le build passe sans erreur ; l'image ne contient ni `.venv`, ni `.ibt`, ni base | ⬜ à faire |
 | d | **Worker en conteneur** : variables d'environnement, dossier des `.ibt` partagé, base dans un volume | Erwan | 2 lancements = même nombre de sessions ; la base survit à la suppression du conteneur | ⬜ à faire |
@@ -147,4 +153,4 @@ Règles pour ce plan :
 - Seul Erwan met à jour la colonne « État ».
 
 ## État actuel
-Étape en cours : **v0.2 — étape a** (installer Docker Desktop). v0.1 terminée (tag `v0.1`).
+Étape en cours : **v0.2 — étape b** (écrire le `Dockerfile` et le `.dockerignore`). v0.1 terminée (tag `v0.1`).
