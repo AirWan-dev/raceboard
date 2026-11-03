@@ -1,0 +1,29 @@
+# 1. Python et poste local (Windows, inutile ou nuisible sous Linux)
+.venv/
+venv/
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
+.pytest_cache/
+.vscode/
+.idea/
+Thumbs.db
+
+# 2. Données et secrets : ne doivent jamais entrer dans une image
+*.ibt
+*.db
+*.sqlite3
+.env
+
+# 3. Suivi par Git mais inutile pour faire tourner l'appli
+.git/
+.gitignore
+.gitattributes
+tests/
+docs/
+README.md
+CLAUDE.md
+RAPPORT.md
+PLAN.md
+Dockerfile
+.dockerignore
