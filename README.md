@@ -141,7 +141,7 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 |---|---|---|---|---|
 | a | **Installer Docker Desktop** et vérifier qu'il tourne | Erwan | `docker run hello-world` affiche le message de bienvenue | ✅ terminé  |
 | b | **Écrire le `Dockerfile` et le `.dockerignore`** | Erwan | Les deux fichiers sont versionnés et relus | ✅ terminé|
-| c | **Construire l'image** (`docker build`) | Erwan | Le build passe sans erreur ; l'image ne contient ni `.venv`, ni `.ibt`, ni base | ⬜ à faire |
+| c | **Construire l'image** (`docker build`) | Erwan | Le build passe sans erreur ; l'image ne contient ni `.venv`, ni `.ibt`, ni base | ✅ terminé |
 | d | **Worker en conteneur** : variables d'environnement, dossier des `.ibt` partagé, base dans un volume | Erwan | 2 lancements = même nombre de sessions ; la base survit à la suppression du conteneur | ⬜ à faire |
 | e | **Dashboard en conteneur** : port 8501 publié, même volume | Erwan | http://localhost:8501 affiche la session de référence (McLaren Fuji : 7 tours, 5 valides, 1:38.716) | ⬜ à faire |
 | f | **docker compose** : worker + dashboard en une commande | Erwan | `docker compose up` démarre tout ; après `down` puis `up`, les données sont toujours là | ⬜ à faire |
