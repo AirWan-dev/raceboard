@@ -110,6 +110,7 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - 0004 — Organiser le code en paquet Python installable
 - 0005 — Tracer les fichiers rejetés dans une table de quarantaine
 - 0006 — Ne pas mettre en quarantaine les fichiers en cours d'écriture
+- 0007 — Une seule image pour le worker et le dashboard
 
 
 ## Plan de la v0.1 (terminée)
@@ -139,7 +140,7 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 | # | Étape | Qui | Terminé quand… | État |
 |---|---|---|---|---|
 | a | **Installer Docker Desktop** et vérifier qu'il tourne | Erwan | `docker run hello-world` affiche le message de bienvenue | ✅ terminé  |
-| b | **Écrire le `Dockerfile` et le `.dockerignore`** | Erwan | Les deux fichiers sont versionnés et relus | ⬜ à faire |
+| b | **Écrire le `Dockerfile` et le `.dockerignore`** | Erwan | Les deux fichiers sont versionnés et relus | ✅ terminé|
 | c | **Construire l'image** (`docker build`) | Erwan | Le build passe sans erreur ; l'image ne contient ni `.venv`, ni `.ibt`, ni base | ⬜ à faire |
 | d | **Worker en conteneur** : variables d'environnement, dossier des `.ibt` partagé, base dans un volume | Erwan | 2 lancements = même nombre de sessions ; la base survit à la suppression du conteneur | ⬜ à faire |
 | e | **Dashboard en conteneur** : port 8501 publié, même volume | Erwan | http://localhost:8501 affiche la session de référence (McLaren Fuji : 7 tours, 5 valides, 1:38.716) | ⬜ à faire |
@@ -153,4 +154,4 @@ Règles pour ce plan :
 - Seul Erwan met à jour la colonne « État ».
 
 ## État actuel
-Étape en cours : **v0.2 — étape b** (écrire le `Dockerfile` et le `.dockerignore`). v0.1 terminée (tag `v0.1`).
+Étape en cours : **v0.2 — étape d** (Worker en conteneur). v0.1 terminée (tag `v0.1`).
