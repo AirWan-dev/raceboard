@@ -111,8 +111,8 @@ On ne passe à la couche suivante qu'une fois la précédente **réellement maî
 - 0005 — Tracer les fichiers rejetés dans une table de quarantaine
 - 0006 — Ne pas mettre en quarantaine les fichiers en cours d'écriture
 - 0007 — Une seule image pour le worker et le dashboard
-- 0008 - Passer de SQLite à PostgreSQL
-
+- 0008 — Passer de SQLite à PostgreSQL
+- 0009 — Configuration et secrets : donnés au lancement, jamais dans l'image ni dans Git
 ## Plan de la v0.1 (terminée)
 Chaque étape a un critère « terminé » vérifiable. On ne passe à la suivante que lorsqu'il est rempli.
 Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applicatif (voir `CLAUDE.md`).
