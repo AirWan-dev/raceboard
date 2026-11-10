@@ -1,0 +1,24 @@
+services:
+  worker:
+    image: raceboard
+    command: python -m raceboard.worker
+    volumes:
+      - C:/Users/AirWan/Documents/iRacing/telemetry:/telemetry:ro
+      - raceboard-data:/data
+    environment:
+      RACEBOARD_TELEMETRY_DIR: /telemetry
+      RACEBOARD_DB_PATH: /data/raceboard.db
+
+  dashboard:
+    image: raceboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - raceboard-data:/data
+    environment:
+      RACEBOARD_DB_PATH: /data/raceboard.db
+
+volumes:
+  raceboard-data:
+    name: raceboard-data    
+    
