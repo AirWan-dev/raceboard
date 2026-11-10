@@ -143,7 +143,7 @@ Colonne « Qui » : **Erwan** = fait à la main ; **Claude Code** = code applica
 | b | **Écrire le `Dockerfile` et le `.dockerignore`** | Erwan | Les deux fichiers sont versionnés et relus | ✅ terminé|
 | c | **Construire l'image** (`docker build`) | Erwan | Le build passe sans erreur ; l'image ne contient ni `.venv`, ni `.ibt`, ni base | ✅ terminé |
 | d | **Worker en conteneur** : variables d'environnement, dossier des `.ibt` partagé, base dans un volume | Erwan | 2 lancements = même nombre de sessions ; la base survit à la suppression du conteneur | ✅ terminé |
-| e | **Dashboard en conteneur** : port 8501 publié, même volume | Erwan | http://localhost:8501 affiche la session de référence (McLaren Fuji : 7 tours, 5 valides, 1:38.716) | ⬜ à faire |
+| e | **Dashboard en conteneur** : port 8501 publié, même volume | Erwan | http://localhost:8501 affiche la session de référence (McLaren Fuji : 7 tours, 5 valides, 1:38.716) | ✅ terminé |
 | f | **docker compose** : worker + dashboard en une commande | Erwan | `docker compose up` démarre tout ; après `down` puis `up`, les données sont toujours là | ⬜ à faire |
 | g | **PostgreSQL** : 3e conteneur, premier secret | Claude Code (`db.py`) + Erwan (conteneur, secret) | Même session de référence affichée depuis PostgreSQL ; tests verts ; aucun mot de passe dans le dépôt | ⬜ à faire |
 | h | **Clôture v0.2** : Installation du README réécrite pour Docker, tag Git `v0.2` | Erwan | Un clone neuf + `docker compose up` = appli qui tourne, sans aucune variable Windows permanente | ⬜ à faire |
@@ -154,4 +154,4 @@ Règles pour ce plan :
 - Seul Erwan met à jour la colonne « État ».
 
 ## État actuel
-Étape en cours : **v0.2 — étape e** (Dashboard en conteneur). v0.1 terminée (tag `v0.1`).
+Étape en cours : **v0.2 — étape f** (docker compose). v0.1 terminée (tag `v0.1`).
