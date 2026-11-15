@@ -1,12 +1,11 @@
 """Tests de l'enregistrement d'un .ibt en base (lecture du fichier remplacée par des données synthétiques)."""
 
-import sqlite3
 import sys
 
 import pytest
 
 from raceboard import import_ibt
-from raceboard.db import fetch_laps
+from raceboard.db import IntegrityError, connect, fetch_laps
 from raceboard.import_ibt import read_ibt, save_ibt
 
 # Échantillons synthétiques : session, temps, tour, dernier temps iRacing, stands, incidents.
@@ -43,23 +42,21 @@ def run_main(monkeypatch, *args):
 
 def test_save_ibt_is_all_or_nothing(connection, ibt_info, sample_laps):
     # La session 0 apparaît deux fois : la seconde insertion échoue, la première est annulée.
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(IntegrityError):
         save_ibt(connection, "session.ibt", ibt_info, [0, 0], sample_laps)
     assert connection.execute("SELECT COUNT(*) FROM sessions").fetchone() == (0,)
     assert fetch_laps(connection) == []
 
 
-def test_import_writes_laps(monkeypatch, capsys, tmp_path, fake_ibt):
-    db_path = tmp_path / "raceboard.db"
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(db_path))
+def test_import_writes_laps(monkeypatch, capsys, database_url, db_label, fake_ibt):
 
     assert run_main(monkeypatch, str(fake_ibt)) == 0
     assert capsys.readouterr().out.splitlines() == [
         "session.ibt : McLaren 720S GT3 EVO, Fuji Speedway (Grand Prix)",
         "  session 0 (Offline Testing) : 3 tours enregistrés",
-        f"Base : {db_path}",
+        f"Base : {db_label}",
     ]
-    connection = sqlite3.connect(db_path)
+    connection = connect(database_url)
     try:
         rows = connection.execute("SELECT lap_num, lap_time_ms, is_valid FROM laps ORDER BY lap_num").fetchall()
     finally:
@@ -67,8 +64,7 @@ def test_import_writes_laps(monkeypatch, capsys, tmp_path, fake_ibt):
     assert rows == [(0, 60000, 0), (1, 100123, 1), (2, 99000, 0)]
 
 
-def test_second_import_of_same_file_is_refused(monkeypatch, capsys, tmp_path, fake_ibt):
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(tmp_path / "raceboard.db"))
+def test_second_import_of_same_file_is_refused(monkeypatch, capsys, database_url, fake_ibt):
     assert run_main(monkeypatch, str(fake_ibt)) == 0
     capsys.readouterr()
 
@@ -77,9 +73,9 @@ def test_second_import_of_same_file_is_refused(monkeypatch, capsys, tmp_path, fa
 
 
 def test_import_without_database_variable(monkeypatch, capsys, fake_ibt):
-    monkeypatch.delenv("RACEBOARD_DB_PATH", raising=False)
+    monkeypatch.delenv("RACEBOARD_DATABASE_URL", raising=False)
     assert run_main(monkeypatch, str(fake_ibt)) == 1
-    assert "RACEBOARD_DB_PATH" in capsys.readouterr().err
+    assert "RACEBOARD_DATABASE_URL" in capsys.readouterr().err
 
 
 def test_import_missing_file(monkeypatch, capsys, tmp_path):

@@ -1,6 +1,7 @@
 """Tests du dashboard : fonctions de la page, lanceur, et page entière exécutée sans navigateur.
 
-La page est exécutée avec l'outil de test de Streamlit (AppTest), sur une base synthétique.
+La page est exécutée avec l'outil de test de Streamlit (AppTest), sur la base PostgreSQL de test
+remplie de données synthétiques.
 """
 
 import sys
@@ -13,7 +14,7 @@ from streamlit.web import cli as streamlit_cli
 
 from raceboard import dashboard, dashboard_page
 from raceboard.dashboard_page import best_lap_text, lap_rows, session_label
-from raceboard.db import StoredLap, StoredSession, connect, create_schema, save_session
+from raceboard.db import StoredLap, StoredSession, fetch_laps, fetch_quarantine, fetch_sessions, save_session
 from raceboard.extract_laps import Lap
 
 MCLAREN_LABEL = "2026-09-26 19:41 · McLaren 720S GT3 EVO · Fuji Speedway (Grand Prix) · Offline Testing · 4 tours"
@@ -95,24 +96,19 @@ def test_launcher_runs_streamlit(monkeypatch):
 
 
 @pytest.fixture
-def db_path(tmp_path, monkeypatch, ibt_info, sample_laps):
+def sample_database(connection, ibt_info, sample_laps):
     """Base avec 3 sessions : McLaren (4 tours), Ferrari plus récente (1 tour), une session sans tour."""
-    path = tmp_path / "raceboard.db"
-    connection = connect(path)
-    create_schema(connection)
     ferrari = replace(
         ibt_info,
         car_name="Ferrari 296 GT3",
         recorded_at=datetime(2026, 10, 1, 19, 52, 14, tzinfo=UTC),
         session_types={0: "Practice"},
     )
-    with connection:
+    with connection.transaction():
         save_session(connection, "mclaren.ibt", 0, ibt_info, sample_laps)
         save_session(connection, "ferrari.ibt", 0, ferrari, [Lap(0, 1, 99.0, True, False, 2)])
         save_session(connection, "vide.ibt", 0, ibt_info, [])
-    connection.close()
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(path))
-    return path
+    return connection
 
 
 def run_page():
@@ -123,17 +119,21 @@ def metrics(app):
     return {metric.label: metric.value for metric in app.metric}
 
 
-def test_page_shows_most_recent_session_first(db_path):
+def database_content(connection):
+    return fetch_sessions(connection), fetch_laps(connection), fetch_quarantine(connection)
+
+
+def test_page_shows_most_recent_session_first(sample_database, db_label):
     app = run_page()
 
     assert not app.exception
     assert app.title[0].value == "RaceBoard — temps au tour"
     assert app.selectbox[0].options == [FERRARI_LABEL, MCLAREN_LABEL]  # la session sans tour est masquée
     assert metrics(app) == {"Tours": "1", "Valides": "0", "Meilleur tour valide": "aucun"}
-    assert app.caption[0].value == "2 sessions avec des tours, 1 sessions sans tour terminé masquées · base raceboard.db"
+    assert app.caption[0].value == f"2 sessions avec des tours, 1 sessions sans tour terminé masquées · base {db_label}"
 
 
-def test_page_shows_laps_of_selected_session(db_path):
+def test_page_shows_laps_of_selected_session(sample_database):
     app = run_page()
     app = app.selectbox[0].select(MCLAREN_LABEL).run()
 
@@ -146,38 +146,38 @@ def test_page_shows_laps_of_selected_session(db_path):
     ]
 
 
-def test_page_does_not_modify_database(db_path):
-    content_before = db_path.read_bytes()
+def test_page_does_not_modify_database(sample_database):
+    content_before = database_content(sample_database)
     app = run_page()
     app.selectbox[0].select(MCLAREN_LABEL).run()
-    assert db_path.read_bytes() == content_before
+    assert database_content(sample_database) == content_before
 
 
 def test_page_without_database_variable(monkeypatch):
-    monkeypatch.delenv("RACEBOARD_DB_PATH", raising=False)
+    monkeypatch.delenv("RACEBOARD_DATABASE_URL", raising=False)
     app = run_page()
-    assert "RACEBOARD_DB_PATH" in app.error[0].value
+    assert "RACEBOARD_DATABASE_URL" in app.error[0].value
     assert not app.selectbox
 
 
-def test_page_with_missing_database(monkeypatch, tmp_path):
-    missing = tmp_path / "absente.db"
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(missing))
+def test_page_with_missing_database(monkeypatch, missing_database_url):
+    monkeypatch.setenv("RACEBOARD_DATABASE_URL", missing_database_url)
 
     app = run_page()
 
-    assert app.error[0].value == f"Base introuvable : {missing}"
-    assert not missing.exists()  # aucune base vide créée
+    assert app.error[0].value.startswith("Connexion à la base impossible : ")
+    assert not app.selectbox
 
 
-def test_page_with_no_lap_in_database(monkeypatch, tmp_path, ibt_info):
-    path = tmp_path / "sans_tour.db"
-    connection = connect(path)
-    create_schema(connection)
-    with connection:
+def test_page_before_first_worker_run(database_url, db_label):
+    app = run_page()  # base de test vide : le worker n'a pas encore créé les tables
+    assert app.error[0].value == f"Base {db_label} pas encore initialisée : le worker n'y a encore jamais tourné"
+    assert not app.selectbox
+
+
+def test_page_with_no_lap_in_database(connection, ibt_info):
+    with connection.transaction():
         save_session(connection, "vide.ibt", 0, ibt_info, [])
-    connection.close()
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(path))
 
     app = run_page()
 

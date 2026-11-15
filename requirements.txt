@@ -1,6 +1,10 @@
 # Lecture des fichiers .ibt
 pyirsdk==1.3.6
 PyYAML==6.0.3
+# Base PostgreSQL : pilote psycopg 3 ; psycopg-binary embarque la bibliothèque client (libpq).
+# Ses autres dépendances (typing_extensions, tzdata) sont figées plus bas.
+psycopg==3.3.9
+psycopg-binary==3.3.9
 # Dashboard : streamlit et chaque paquet qu'il installe, en version exacte
 streamlit==1.66.1
 altair==6.3.0

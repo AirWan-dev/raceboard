@@ -1,19 +1,20 @@
 """Page Streamlit du dashboard : temps au tour lus en base, jamais dans les fichiers .ibt.
 
 Ne se lance pas directement : utiliser py -m raceboard.dashboard (voir dashboard.py),
-qui exécute ce fichier avec Streamlit. La base est ouverte en lecture seule (RACEBOARD_DB_PATH).
+qui exécute ce fichier avec Streamlit. La base est ouverte en lecture seule (RACEBOARD_DATABASE_URL).
 """
 
 import streamlit as st
 
 from raceboard.db import (
     ConfigError,
+    DatabaseError,
     StoredLap,
     StoredSession,
-    connect,
+    database_label,
     fetch_session_laps,
     fetch_sessions,
-    get_db_path,
+    open_existing_database,
 )
 from raceboard.extract_laps import format_lap_time
 
@@ -49,16 +50,13 @@ def render() -> None:
     st.title("RaceBoard — temps au tour")
 
     try:
-        db_path = get_db_path()
-    except ConfigError as error:
+        connection = open_existing_database(read_only=True)
+    except (ConfigError, DatabaseError) as error:
         st.error(str(error))
         st.stop()
-    if not db_path.is_file():
-        st.error(f"Base introuvable : {db_path}")
-        st.stop()
 
-    connection = connect(db_path, read_only=True)
     try:
+        database = database_label(connection)
         all_sessions = fetch_sessions(connection)
         sessions = {session.id: session for session in all_sessions if session.lap_count > 0}
         if not sessions:
@@ -75,7 +73,7 @@ def render() -> None:
         connection.close()
 
     hidden = len(all_sessions) - len(sessions)
-    st.caption(f"{len(sessions)} sessions avec des tours, {hidden} sessions sans tour terminé masquées · base {db_path.name}")
+    st.caption(f"{len(sessions)} sessions avec des tours, {hidden} sessions sans tour terminé masquées · base {database}")
 
     laps_column, valid_column, best_column = st.columns(3)
     laps_column.metric("Tours", session.lap_count)

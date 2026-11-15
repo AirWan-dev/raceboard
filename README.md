@@ -67,7 +67,7 @@ Prérequis : Windows, Python 3.12, Git. Toutes les commandes se tapent dans Powe
    
 4. Configurer (dans la même fenêtre)
    ```
-   $env:RACEBOARD_DB_PATH = "C:\chemin\vers\raceboard\data\raceboard.db"
+   $env:RACEBOARD_DATABASE_URL = "postgresql://<utilisateur>:<mot de passe>@<serveur>:5432/<base>"
    $env:RACEBOARD_TELEMETRY_DIR = "C:\Users\<vous>\Documents\iRacing\telemetry"
    ```
 5. Importer les .ibt dans la base

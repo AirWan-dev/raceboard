@@ -3,7 +3,7 @@
 Retirer un fichier de la quarantaine supprime seulement sa ligne en base : le fichier .ibt
 n'est jamais touché, et le worker le retraitera à son prochain passage.
 
-Le chemin de la base est lu dans la variable d'environnement RACEBOARD_DB_PATH.
+La connexion à la base est lue dans la variable d'environnement RACEBOARD_DATABASE_URL.
 
 Usage :
     py -m raceboard.quarantine list
@@ -14,7 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from raceboard.db import ConfigError, connect, create_schema, fetch_quarantine, get_db_path, remove_from_quarantine
+from raceboard.db import ConfigError, DatabaseError, fetch_quarantine, open_existing_database, remove_from_quarantine
 
 
 def main() -> int:
@@ -26,17 +26,12 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        db_path = get_db_path()
-    except ConfigError as error:
+        connection = open_existing_database()
+    except (ConfigError, DatabaseError) as error:
         print(error, file=sys.stderr)
         return 1
-    if not db_path.is_file():
-        print(f"Base introuvable : {db_path}", file=sys.stderr)
-        return 1
 
-    connection = connect(db_path)
     try:
-        create_schema(connection)  # base créée avant l'ADR 0005 : ajoute la table quarantine si besoin
         if args.command == "list":
             return list_quarantine(connection)
         return remove_file(connection, args.file)

@@ -93,8 +93,7 @@ def test_new_file_is_imported_on_next_run(connection, telemetry_dir):
     assert count_rows(connection) == (3, 6)
 
 
-def test_main_output_and_exit_code(monkeypatch, capsys, tmp_path, telemetry_dir):
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(tmp_path / "raceboard.db"))
+def test_main_output_and_exit_code(monkeypatch, capsys, database_url, db_label, telemetry_dir):
     monkeypatch.setenv("RACEBOARD_TELEMETRY_DIR", str(telemetry_dir))
 
     assert worker.main() == 1  # un fichier en erreur
@@ -104,13 +103,12 @@ def test_main_output_and_exit_code(monkeypatch, capsys, tmp_path, telemetry_dir)
         "importé  b.ibt : 2 tours",
         "3 fichiers .ibt : 2 importés, 0 déjà en base, 1 mis en quarantaine, "
         "0 déjà en quarantaine, 0 en cours d'écriture",
-        "Base raceboard.db : 2 sessions, 4 tours, 1 fichiers en quarantaine",
+        f"Base {db_label} : 2 sessions, 4 tours, 1 fichiers en quarantaine",
     ]
     assert captured.err == "ERREUR   casse.ibt : ValueError: fichier illisible\n"
 
 
-def test_main_second_run_returns_0_with_known_quarantine(monkeypatch, capsys, tmp_path, telemetry_dir):
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(tmp_path / "raceboard.db"))
+def test_main_second_run_returns_0_with_known_quarantine(monkeypatch, capsys, database_url, db_label, telemetry_dir):
     monkeypatch.setenv("RACEBOARD_TELEMETRY_DIR", str(telemetry_dir))
     worker.main()
     capsys.readouterr()
@@ -120,7 +118,7 @@ def test_main_second_run_returns_0_with_known_quarantine(monkeypatch, capsys, tm
     assert captured.out.splitlines() == [
         "3 fichiers .ibt : 0 importés, 2 déjà en base, 0 mis en quarantaine, "
         "1 déjà en quarantaine, 0 en cours d'écriture",
-        "Base raceboard.db : 2 sessions, 4 tours, 1 fichiers en quarantaine",
+        f"Base {db_label} : 2 sessions, 4 tours, 1 fichiers en quarantaine",
     ]
     assert captured.err == ""
 
@@ -133,7 +131,7 @@ def test_failed_file_is_put_in_quarantine(connection, telemetry_dir):
     assert len(rows) == 1
     source_file, error_message, rejected_at = rows[0]
     assert (source_file, error_message) == ("casse.ibt", "ValueError: fichier illisible")
-    rejected = datetime.strptime(rejected_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+    rejected = rejected_at.replace(tzinfo=UTC)  # PostgreSQL renvoie une vraie date, UTC sans fuseau
     assert before <= rejected <= datetime.now(UTC)
     # Le worker ne supprime ni ne déplace jamais un fichier source.
     assert (telemetry_dir / "casse.ibt").is_file()
@@ -141,8 +139,7 @@ def test_failed_file_is_put_in_quarantine(connection, telemetry_dir):
 
 def test_file_removed_from_quarantine_is_retried(connection, telemetry_dir):
     run_worker(connection, telemetry_dir)
-    with connection:
-        connection.execute("DELETE FROM quarantine WHERE source_file = 'casse.ibt'")
+    connection.execute("DELETE FROM quarantine WHERE source_file = 'casse.ibt'")
 
     report = run_worker(connection, telemetry_dir)
 
@@ -152,9 +149,19 @@ def test_file_removed_from_quarantine_is_retried(connection, telemetry_dir):
 
 
 def test_main_without_configuration(monkeypatch, capsys):
-    monkeypatch.delenv("RACEBOARD_DB_PATH", raising=False)
+    monkeypatch.delenv("RACEBOARD_DATABASE_URL", raising=False)
     assert worker.main() == 1
-    assert "RACEBOARD_DB_PATH" in capsys.readouterr().err
+    assert "RACEBOARD_DATABASE_URL" in capsys.readouterr().err
+
+
+def test_main_with_unreachable_database(monkeypatch, capsys, missing_database_url, telemetry_dir):
+    monkeypatch.setenv("RACEBOARD_DATABASE_URL", missing_database_url)
+    monkeypatch.setenv("RACEBOARD_TELEMETRY_DIR", str(telemetry_dir))
+
+    assert worker.main() == 1  # vraie panne, à distinguer d'un fichier en quarantaine
+    captured = capsys.readouterr()
+    assert captured.out == ""  # aucun fichier traité
+    assert captured.err.startswith("Connexion à la base impossible : ")
 
 
 # --- ADR 0006 : fichiers en cours d'écriture ---------------------------------------------------
@@ -224,8 +231,7 @@ def test_locked_file_is_left_aside_without_quarantine(connection, telemetry_dir,
     assert run_worker(connection, telemetry_dir).pending == [("verrou.ibt", "fichier verrouillé")]
 
 
-def test_main_recent_file_returns_0(monkeypatch, capsys, tmp_path, telemetry_dir):
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(tmp_path / "raceboard.db"))
+def test_main_recent_file_returns_0(monkeypatch, capsys, database_url, db_label, telemetry_dir):
     monkeypatch.setenv("RACEBOARD_TELEMETRY_DIR", str(telemetry_dir))
     monkeypatch.delenv("RACEBOARD_FILE_GUARD_MINUTES", raising=False)
     worker.main()  # 1er passage : casse.ibt part en quarantaine
@@ -238,13 +244,13 @@ def test_main_recent_file_returns_0(monkeypatch, capsys, tmp_path, telemetry_dir
         "en attente  en_cours.ibt : modifié il y a moins de 15 min",
         "4 fichiers .ibt : 0 importés, 2 déjà en base, 0 mis en quarantaine, "
         "1 déjà en quarantaine, 1 en cours d'écriture",
-        "Base raceboard.db : 2 sessions, 4 tours, 1 fichiers en quarantaine",
+        f"Base {db_label} : 2 sessions, 4 tours, 1 fichiers en quarantaine",
     ]
     assert captured.err == ""
 
 
-def test_main_with_invalid_guard(monkeypatch, capsys, tmp_path, telemetry_dir):
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(tmp_path / "raceboard.db"))
+def test_main_with_invalid_guard(monkeypatch, capsys, telemetry_dir):
+    monkeypatch.setenv("RACEBOARD_DATABASE_URL", "postgresql://raceboard:x@postgres:5432/raceboard")  # jamais contactée
     monkeypatch.setenv("RACEBOARD_TELEMETRY_DIR", str(telemetry_dir))
     monkeypatch.setenv("RACEBOARD_FILE_GUARD_MINUTES", "quinze")
 
@@ -252,8 +258,7 @@ def test_main_with_invalid_guard(monkeypatch, capsys, tmp_path, telemetry_dir):
     assert "RACEBOARD_FILE_GUARD_MINUTES" in capsys.readouterr().err
 
 
-def test_file_removed_with_quarantine_command_is_imported(monkeypatch, capsys, tmp_path, telemetry_dir, ibt_info):
-    monkeypatch.setenv("RACEBOARD_DB_PATH", str(tmp_path / "raceboard.db"))
+def test_file_removed_with_quarantine_command_is_imported(monkeypatch, capsys, database_url, db_label, telemetry_dir, ibt_info):
     monkeypatch.setenv("RACEBOARD_TELEMETRY_DIR", str(telemetry_dir))
     assert worker.main() == 1  # casse.ibt part en quarantaine
 
@@ -266,4 +271,4 @@ def test_file_removed_with_quarantine_command_is_imported(monkeypatch, capsys, t
     assert worker.main() == 0
     output = capsys.readouterr().out.splitlines()
     assert output[0] == "importé  casse.ibt : 1 tours"
-    assert output[-1] == "Base raceboard.db : 3 sessions, 5 tours, 0 fichiers en quarantaine"
+    assert output[-1] == f"Base {db_label} : 3 sessions, 5 tours, 0 fichiers en quarantaine"

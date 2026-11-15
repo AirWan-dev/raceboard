@@ -1,6 +1,6 @@
 """Affiche les tours enregistrés en base (requête SQL, sans lire aucun .ibt).
 
-Le chemin de la base est lu dans la variable d'environnement RACEBOARD_DB_PATH.
+La connexion à la base est lue dans la variable d'environnement RACEBOARD_DATABASE_URL.
 
 Usage :
     py -m raceboard.show_laps
@@ -8,23 +8,20 @@ Usage :
 
 import sys
 
-from raceboard.db import ConfigError, connect, fetch_laps, get_db_path
+from raceboard.db import ConfigError, DatabaseError, database_label, fetch_laps, open_existing_database
 from raceboard.extract_laps import format_lap_time
 
 
 def main() -> int:
     try:
-        db_path = get_db_path()
-    except ConfigError as error:
+        connection = open_existing_database()
+    except (ConfigError, DatabaseError) as error:
         print(error, file=sys.stderr)
         return 1
-    if not db_path.is_file():
-        print(f"Base introuvable : {db_path}", file=sys.stderr)
-        return 1
 
-    connection = connect(db_path)
     try:
         laps = fetch_laps(connection)
+        database = database_label(connection)
     finally:
         connection.close()
 
@@ -38,7 +35,7 @@ def main() -> int:
         )
     print("-" * 100)
     print("* temps mesuré entre deux passages de ligne (indicatif)")
-    print(f"{len(laps)} tours dans {db_path.name}")
+    print(f"{len(laps)} tours dans la base {database}")
     return 0
 
 

@@ -8,13 +8,13 @@ retenter : py -m raceboard.quarantine remove "<fichier>".
 Le worker ne modifie ni ne supprime jamais un fichier source.
 Un passage, puis le worker s'arrête (le déclenchement régulier relève de l'infra).
 
-Code retour : 1 si un fichier a été mis en quarantaine pendant ce passage (nouvelle alerte)
-ou si la configuration est incorrecte ; 0 sinon, même s'il reste des fichiers en quarantaine
+Code retour : 1 si un fichier a été mis en quarantaine pendant ce passage (nouvelle alerte),
+si la configuration est incorrecte ou si la base est injoignable ; 0 sinon, même s'il reste des fichiers en quarantaine
 ou en cours d'écriture.
 
 Configuration par variables d'environnement :
     RACEBOARD_TELEMETRY_DIR       dossier contenant les .ibt (sous-dossiers non parcourus)
-    RACEBOARD_DB_PATH             chemin du fichier de base
+    RACEBOARD_DATABASE_URL        connexion à la base PostgreSQL (contient le mot de passe)
     RACEBOARD_FILE_GUARD_MINUTES  délai de garde en minutes (facultatif, 15 par défaut) :
                                   un fichier modifié plus récemment est considéré en cours d'écriture
 
@@ -23,7 +23,6 @@ Usage :
 """
 
 import os
-import sqlite3
 import sys
 import time
 from dataclasses import dataclass, field
@@ -32,11 +31,14 @@ from pathlib import Path
 
 from raceboard.db import (
     ConfigError,
+    Connection,
+    DatabaseError,
     add_to_quarantine,
     connect,
     count_rows,
     create_schema,
-    get_db_path,
+    database_label,
+    get_database_url,
     imported_files,
     quarantined_files,
 )
@@ -83,7 +85,7 @@ def get_guard_minutes() -> int:
 
 
 def run_worker(
-    connection: sqlite3.Connection, telemetry_dir: Path, guard_minutes: int = DEFAULT_GUARD_MINUTES
+    connection: Connection, telemetry_dir: Path, guard_minutes: int = DEFAULT_GUARD_MINUTES
 ) -> WorkerReport:
     """Importe les .ibt du dossier qui ne sont ni en base ni en quarantaine, un fichier par transaction."""
     report = WorkerReport()
@@ -134,19 +136,20 @@ def _leave_aside(report: WorkerReport, file_name: str, reason: str) -> None:
 
 def main() -> int:
     try:
-        db_path = get_db_path()
+        database_url = get_database_url()
         telemetry_dir = get_telemetry_dir()
         guard_minutes = get_guard_minutes()
-    except ConfigError as error:
+        connection = connect(database_url)
+    except (ConfigError, DatabaseError) as error:
         print(error, file=sys.stderr)
         return 1
 
-    connection = connect(db_path)
     try:
         create_schema(connection)
         report = run_worker(connection, telemetry_dir, guard_minutes)
         sessions, laps = count_rows(connection)
         quarantine = len(quarantined_files(connection))
+        database = database_label(connection)
     finally:
         connection.close()
 
@@ -155,7 +158,7 @@ def main() -> int:
         f"{report.skipped} déjà en base, {len(report.errors)} mis en quarantaine, "
         f"{report.quarantined} déjà en quarantaine, {len(report.pending)} en cours d'écriture"
     )
-    print(f"Base {db_path.name} : {sessions} sessions, {laps} tours, {quarantine} fichiers en quarantaine")
+    print(f"Base {database} : {sessions} sessions, {laps} tours, {quarantine} fichiers en quarantaine")
     return 1 if report.errors else 0
 
 

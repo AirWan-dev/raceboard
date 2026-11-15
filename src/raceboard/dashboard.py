@@ -1,7 +1,7 @@
 """Lance le dashboard Streamlit, puis l'ouvre sur http://localhost:8501.
 
 La page (dashboard_page.py) lit uniquement la base, via la variable d'environnement
-RACEBOARD_DB_PATH, jamais les fichiers .ibt. Ctrl+C dans le terminal arrête le serveur.
+RACEBOARD_DATABASE_URL, jamais les fichiers .ibt. Ctrl+C dans le terminal arrête le serveur.
 
 Usage :
     py -m raceboard.dashboard
