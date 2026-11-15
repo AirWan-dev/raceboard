@@ -4,19 +4,22 @@ services:
     command: python -m raceboard.worker
     volumes:
       - C:/Users/AirWan/Documents/iRacing/telemetry:/telemetry:ro
-      - raceboard-data:/data
     environment:
       RACEBOARD_TELEMETRY_DIR: /telemetry
-      RACEBOARD_DB_PATH: /data/raceboard.db
+      RACEBOARD_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   dashboard:
     image: raceboard
     ports:
       - "8501:8501"
-    volumes:
-      - raceboard-data:/data
     environment:
-      RACEBOARD_DB_PATH: /data/raceboard.db
+      RACEBOARD_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:17
@@ -26,8 +29,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - bdd_raceboard:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  raceboard-data:
-    name: raceboard-data
   bdd_raceboard:
